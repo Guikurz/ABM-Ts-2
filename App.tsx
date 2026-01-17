@@ -66,21 +66,17 @@ const App: React.FC = () => {
   }, []);
 
   const fetchInitialData = async (userId: string) => {
-      // Force a minimum load time to prevent UI flashing
-      const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
-      
       try {
         await Promise.all([
             fetchProfile(userId),
             fetchAppSettings(userId),
             fetchStats(userId),
-            fetchCampaigns(userId),
-            minLoadTime // Wait for min time
+            fetchCampaigns(userId)
         ]);
       } catch (e) {
           console.error("Failed to load initial data", e);
       } finally {
-          setInitialLoading(false); // Enable app rendering
+          setInitialLoading(false); // Enable app rendering immediately
       }
   };
 
@@ -328,8 +324,10 @@ const App: React.FC = () => {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900">
               <div className="flex flex-col items-center gap-4">
-                  <div className="size-12 rounded-full border-4 border-slate-200 border-t-primary animate-spin"></div>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-bold animate-pulse">Carregando...</p>
+                  {/* Modern Loading Bar */}
+                  <div className="w-24 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary w-full animate-pulse"></div>
+                  </div>
               </div>
           </div>
       );

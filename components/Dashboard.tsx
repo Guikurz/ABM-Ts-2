@@ -232,8 +232,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userProfile, stats, campaigns = [
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Bem-vindo de volta, {userName}.</p>
       </div>
 
-      {/* Onboarding Widget - ONLY SHOW IF INCOMPLETE */}
-      {!isTutorialComplete && (
+      {/* Onboarding Widget - ONLY SHOW IF STATS ARE LOADED AND INCOMPLETE */}
+      {stats && !isTutorialComplete && (
           <div className="bg-white dark:bg-[#151b2b] rounded-xl border border-primary/20 shadow-lg shadow-primary/5 overflow-hidden">
               <div className="p-6 bg-gradient-to-r from-primary/5 to-transparent border-b border-primary/10">
                   <div className="flex justify-between items-end mb-2">

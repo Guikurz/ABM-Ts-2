@@ -265,7 +265,12 @@ const Reports: React.FC = () => {
   if (loading) {
       return (
           <div className="flex items-center justify-center h-full min-h-[400px]">
-              <span className="material-symbols-outlined text-4xl animate-spin text-primary">sync</span>
+              {/* Modern Bouncing Dots Loader */}
+              <div className="flex items-center gap-1.5">
+                  <div className="size-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="size-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="size-2 bg-primary rounded-full animate-bounce"></div>
+              </div>
           </div>
       );
   }
