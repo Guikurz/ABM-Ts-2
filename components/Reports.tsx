@@ -186,7 +186,12 @@ const Reports: React.FC = () => {
         // Filter entities for this company
         const compCampaigns = campaigns.filter(c => c.targetCompany === company.name);
         const compContacts = contacts.filter(c => c.company === company.name);
-        const compDeals = deals.filter(d => d.company_id === company.id);
+        
+        // Improved Deal Matching: Match by ID OR Name (to catch deals created via Campaigns without ID link)
+        const compDeals = deals.filter(d => 
+            d.company_id === company.id || 
+            (d.company_name && d.company_name === company.name)
+        );
 
         // Calculate Tasks Stats & Points from Campaigns
         let tasksTotal = 0;
@@ -211,16 +216,15 @@ const Reports: React.FC = () => {
         const activeDealsValue = activeDeals.reduce((acc, curr) => acc + curr.value, 0);
         const activeDealsCount = activeDeals.length;
 
-        // --- Temperature & Engagement Score Logic ---
-        // Changed: Use pointsEarned directly as the Score
+        // --- Temperature & Engagement Score Logic (Strict Rule) ---
         const engagementScore = pointsEarned;
         
         let temperature: 'Hot' | 'Warm' | 'Cold' = 'Cold';
         
-        // Temperature Heuristic adjusted for direct points
-        if (engagementScore > 300 || activeDealsCount > 0) {
+        // Rule: > 500 Hot, >= 300 Warm, else Cold
+        if (engagementScore > 500) {
             temperature = 'Hot';
-        } else if (engagementScore > 50 || compCampaigns.length > 0) {
+        } else if (engagementScore >= 300) {
             temperature = 'Warm';
         }
 
@@ -229,13 +233,13 @@ const Reports: React.FC = () => {
             name: company.name,
             campaignsCount: compCampaigns.length,
             contactsCount: compContacts.length,
-            dealsCount: compDeals.length,
+            dealsCount: activeDealsCount,
             dealsValue: activeDealsValue,
             tasksTotal,
             tasksCompleted,
             tasksPending: tasksTotal - tasksCompleted,
             pointsEarned,
-            engagementScore, // This is now pointsEarned
+            engagementScore, 
             temperature
         };
     }).sort((a, b) => b.engagementScore - a.engagementScore);
@@ -333,10 +337,19 @@ const Reports: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Temperature Breakdown */}
           <div className="lg:col-span-2 bg-white dark:bg-[#151b2b] rounded-lg border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-orange-500">thermostat</span>
-                  Saúde da Carteira (Temperatura)
-              </h3>
+              <div className="flex justify-between items-start mb-6">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-orange-500">thermostat</span>
+                      Saúde da Carteira (Temperatura)
+                  </h3>
+                  {/* Legend / Rules */}
+                  <div className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700">
+                      <p><strong>Critérios de Pontuação:</strong></p>
+                      <p><span className="text-blue-500 font-bold">&lt; 300 pts:</span> Fria</p>
+                      <p><span className="text-yellow-600 font-bold">300 - 500 pts:</span> Morna</p>
+                      <p><span className="text-orange-500 font-bold">&gt; 500 pts:</span> Quente</p>
+                  </div>
+              </div>
               
               <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30 text-center">
@@ -449,9 +462,9 @@ const Reports: React.FC = () => {
                                   <span className="font-bold text-slate-900 dark:text-white block">{row.name}</span>
                               </td>
                               <td className="px-6 py-4 text-center">
-                                  {row.temperature === 'Hot' && <span className="material-symbols-outlined text-orange-500 text-[18px]" title="Quente">local_fire_department</span>}
-                                  {row.temperature === 'Warm' && <span className="material-symbols-outlined text-yellow-500 text-[18px]" title="Morna">wb_sunny</span>}
-                                  {row.temperature === 'Cold' && <span className="material-symbols-outlined text-blue-400 text-[18px]" title="Fria">ac_unit</span>}
+                                  {row.temperature === 'Hot' && <span className="material-symbols-outlined text-orange-500 text-[18px]" title="Quente (> 500pts)">local_fire_department</span>}
+                                  {row.temperature === 'Warm' && <span className="material-symbols-outlined text-yellow-500 text-[18px]" title="Morna (300-500pts)">wb_sunny</span>}
+                                  {row.temperature === 'Cold' && <span className="material-symbols-outlined text-blue-400 text-[18px]" title="Fria (< 300pts)">ac_unit</span>}
                               </td>
                               <td className="px-6 py-4 text-center">
                                   {row.campaignsCount > 0 ? (

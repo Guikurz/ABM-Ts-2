@@ -220,16 +220,29 @@ const ContactDetailsPage: React.FC<ContactDetailsPageProps> = ({ contact, onBack
           const timestamp = Date.now();
           const fileName = `${contact.id}/${timestamp}.${ext}`;
 
+          // 1. Upload to Storage
           const { error: uploadError } = await supabase.storage
               .from('contact-avatars')
               .upload(fileName, fileToUpload, { contentType, upsert: true });
 
           if (uploadError) throw uploadError;
 
+          // 2. Get Public URL
           const { data: urlData } = supabase.storage.from('contact-avatars').getPublicUrl(fileName);
+          const publicUrl = urlData.publicUrl;
           
-          // Update form data immediately
-          setFormData(prev => ({ ...prev, avatar: urlData.publicUrl }));
+          // 3. Update Database IMMEDIATELY
+          const { error: dbError } = await supabase
+              .from('contacts')
+              .update({ avatar: publicUrl, updated_at: new Date().toISOString() })
+              .eq('id', contact.id);
+
+          if (dbError) throw dbError;
+
+          // 4. Update UI States
+          setFormData(prev => ({ ...prev, avatar: publicUrl }));
+          setData(prev => ({ ...prev, avatar: publicUrl })); // Update non-edit view as well
+          
           setIsCropping(false);
           setAvatarFile(null);
           setRawFile(null);

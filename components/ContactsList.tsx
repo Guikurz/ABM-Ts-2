@@ -47,7 +47,7 @@ const ContactsList: React.FC<ContactsListProps> = ({ onContactClick, userId, onN
                 company: c.company || '', // This matches by string name
                 status: c.status || 'New',
                 last: '-',
-                avatar: '',
+                avatar: c.avatar || '', // FIXED: Load avatar from DB instead of hardcoded empty string
                 priority: 'Média',
                 selected: false
             }));
@@ -364,9 +364,16 @@ const ContactsList: React.FC<ContactsListProps> = ({ onContactClick, userId, onN
                         >
                             <td className="px-6 py-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="size-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">
-                                        {contact.name.charAt(0)}
-                                    </div>
+                                    {contact.avatar ? (
+                                        <div 
+                                            className="size-8 rounded-full bg-slate-200 bg-cover bg-center shrink-0 border border-slate-200 dark:border-slate-700"
+                                            style={{ backgroundImage: `url("${contact.avatar}")` }}
+                                        ></div>
+                                    ) : (
+                                        <div className="size-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs shrink-0">
+                                            {contact.name.charAt(0)}
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="font-semibold text-slate-900 dark:text-white group-hover:text-primary transition-colors">{contact.name}</p>
                                         <p className="text-xs text-slate-400">{contact.role}</p>

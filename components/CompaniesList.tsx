@@ -26,7 +26,7 @@ const CompaniesList: React.FC<CompaniesListProps> = ({ onCompanyClick, userId, o
           supabase.from('companies').select('*').eq('user_id', userId),
           supabase.from('contacts').select('id, company').eq('user_id', userId),
           supabase.from('campaigns').select('id, target_company, steps').eq('user_id', userId), 
-          supabase.from('deals').select('id, company_id, status, value').eq('user_id', userId)
+          supabase.from('deals').select('id, company_id, company_name, status, value').eq('user_id', userId)
       ]);
 
       if (companiesRes.error) throw companiesRes.error;
@@ -56,23 +56,26 @@ const CompaniesList: React.FC<CompaniesListProps> = ({ onCompanyClick, userId, o
               }
           });
 
-          // Count active deals (matched by company_id uuid)
-          const activeDeals = dealList.filter((d: any) => d.company_id === c.id && (d.status === 'Open' || d.status === 'Won'));
+          // Count active deals (matched by company_id uuid OR company name fallback)
+          const activeDeals = dealList.filter((d: any) => 
+            (d.company_id === c.id || d.company_name === c.name) && 
+            (d.status === 'Open' || d.status === 'Won')
+          );
           const dealsCount = activeDeals.length;
 
-          // --- Temperature Logic ---
-          // Heuristic based on activity volume + Score
+          // --- Temperature Logic (Updated Rules) ---
+          // < 300: Cold
+          // 300 - 500: Warm
+          // > 500: Hot
           let temperature: 'Hot' | 'Warm' | 'Cold' = 'Cold';
           
-          // Hot: High score OR Active Deals
-          if (taskPointsScore > 500 || dealsCount > 0) {
+          if (taskPointsScore > 500) {
               temperature = 'Hot';
-          } 
-          // Warm: Some score OR Active Campaigns
-          else if (taskPointsScore > 100 || campaignsCount > 0) {
+          } else if (taskPointsScore >= 300) {
               temperature = 'Warm';
-          } 
-          // Cold: Default
+          } else {
+              temperature = 'Cold';
+          }
 
           return {
               id: c.id,
@@ -92,8 +95,14 @@ const CompaniesList: React.FC<CompaniesListProps> = ({ onCompanyClick, userId, o
       
       // Sort by Temperature (Hot first), then Score
       mapped.sort((a, b) => {
-          if (a.temperature === 'Hot' && b.temperature !== 'Hot') return -1;
-          if (b.temperature === 'Hot' && a.temperature !== 'Hot') return 1;
+          // Custom sort order: Hot > Warm > Cold
+          const tempOrder = { 'Hot': 3, 'Warm': 2, 'Cold': 1 };
+          const scoreA = tempOrder[a.temperature || 'Cold'];
+          const scoreB = tempOrder[b.temperature || 'Cold'];
+          
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          
+          // Secondary sort by numeric score
           return (b.score || 0) - (a.score || 0);
       });
       
@@ -151,21 +160,21 @@ const CompaniesList: React.FC<CompaniesListProps> = ({ onCompanyClick, userId, o
       switch(temp) {
           case 'Hot': 
             return (
-                <div className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded border border-orange-100 dark:border-orange-900/30" title="Alta prioridade / Negócios Ativos">
+                <div className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded border border-orange-100 dark:border-orange-900/30" title="Acima de 500 pontos">
                     <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
                     Quente
                 </div>
             );
           case 'Warm':
             return (
-                <div className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded border border-yellow-100 dark:border-yellow-900/30" title="Em prospecção / Engajamento Médio">
+                <div className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded border border-yellow-100 dark:border-yellow-900/30" title="Entre 300 e 500 pontos">
                     <span className="material-symbols-outlined text-[14px]">wb_sunny</span>
                     Morna
                 </div>
             );
           default:
             return (
-                <div className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/30" title="Sem atividade recente">
+                <div className="flex items-center gap-1 text-xs font-bold text-blue-400 bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/30" title="Abaixo de 300 pontos">
                     <span className="material-symbols-outlined text-[14px]">ac_unit</span>
                     Fria
                 </div>
